@@ -87,6 +87,15 @@ class ChatBot {
             this.quickActionsContainer.style.display = 'none';
         }
     }
+    handleQuickAction(category) {
+        this.hideQuickActions();
+        const categoryMessages = {
+            customersupport: "Hello",
+        };
+        const message = categoryMessages[category] || `I'm interested in ${category}.`;
+        // this.addMessage(message, 'user');
+        this.generateBotResponse(message);
+    }
 
     sendMessage() {
         const msg = this.messageInput.value.trim();
@@ -169,15 +178,48 @@ class ChatBot {
     //     this.chatMessages.appendChild(card);
     //     this.scrollToBottom();
     // }
+    // addOrderCard(order) {
+    //     const card = document.createElement('div');
+    //     card.className = 'order-card fade-in';
+    
+    //     const imageUrl = order.product_image || '';  // Fallback if image is missing
+    //     const productName = order.product_name || 'Product';
+    
+    //     card.innerHTML = `
+    //         <div class="card mb-2 shadow-sm border">
+    //             <div class="row g-0">
+    //                 <div class="col-4 product-image">
+    //                     <img src="${imageUrl}" alt="${productName}" class="img-fluid rounded-start" onerror="this.style.display='none'" />
+    //                 </div>
+    //                 <div class="col-8">
+    //                     <div class="card-body p-2">
+    //                         <h6 class="card-title mb-1 text-truncate">${productName}</h6>
+    //                         <p class="card-text mb-1"><strong>Order ID:</strong> ${order.order_id}</p>
+    //                         <p class="card-text mb-1"><strong>Status:</strong> ${order.status}</p>
+    //                         ${order.order_date ? `<p class="card-text mb-1"><strong>Date:</strong> ${order.order_date}</p>` : ''}
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     `;
+    
+    //     this.chatMessages.appendChild(card);
+    //     this.scrollToBottom();
+    // }
     addOrderCard(order) {
         const card = document.createElement('div');
-        card.className = 'order-card fade-in';
+        card.className = 'order-card fade-in cursor-pointer'; // Add cursor pointer
     
-        const imageUrl = order.product_image || '';  // Fallback if image is missing
-        const productName = order.product_name || 'Product';
+        const imageUrl = order.product_image || '';
+        const productName = order.itemname || 'Product';
+        const orderId = order.order_id || 'N/A';
+        const status = order.status || 'Pending';
+        const orderDate = order.order_date || '';
+        const invoiceNo = order.invoice_no || '';
+        const invoiceUrl = order.invoice_url || '';
     
         card.innerHTML = `
-            <div class="card mb-2 shadow-sm border">
+            <div class="card mb-2 shadow-sm border h-100">
                 <div class="row g-0">
                     <div class="col-4 product-image">
                         <img src="${imageUrl}" alt="${productName}" class="img-fluid rounded-start" onerror="this.style.display='none'" />
@@ -185,18 +227,30 @@ class ChatBot {
                     <div class="col-8">
                         <div class="card-body p-2">
                             <h6 class="card-title mb-1 text-truncate">${productName}</h6>
-                            <p class="card-text mb-1"><strong>Order ID:</strong> ${order.order_id}</p>
-                            <p class="card-text mb-1"><strong>Status:</strong> ${order.status}</p>
-                            ${order.order_date ? `<p class="card-text mb-1"><strong>Date:</strong> ${order.order_date}</p>` : ''}
+                            <p class="card-text mb-1"><strong>Order ID:</strong> ${orderId}</p>
+                            ${orderDate ? `<p class="card-text mb-1"><strong>Date:</strong> ${orderDate}</p>` : ''}
+                            ${invoiceNo ? `<p class="card-text mb-1"><strong>Invoice No:</strong> ${invoiceNo}</p>` : ''}
+                            <p class="card-text mb-1"><strong>Status:</strong> ${status}</p>
+                            ${invoiceUrl ? `<a href="${invoiceUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">View Invoice</a>` : ''}
                         </div>
                     </div>
                 </div>
             </div>
         `;
     
+        // Make the card clickable
+        card.addEventListener('click', () => {
+            const promptText = `This order ${productName} and ${orderId}`;
+            console.log('Order card clicked:', promptText);
+            this.addMessage(promptText, 'user');
+            this.generateBotResponse(promptText);
+        });
+    
         this.chatMessages.appendChild(card);
         this.scrollToBottom();
     }
+    
+    
     
 
     generateBotResponse(userMessage) {

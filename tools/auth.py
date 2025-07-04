@@ -117,21 +117,47 @@ verify_otp_schema = {
     }
 }
 
+# async def sign_in(phone: str, password: str, session_id: str) -> dict:
+#     data = {"user_name": phone, "password": password, "is_otp": "0"}
+#     async with httpx.AsyncClient() as client:
+#         response = await client.post(VERIFY_OTP_URL, data=data, headers=AUTH_HEADERS)
+#         result = response.json()
+#         if result.get("error") == "0":
+#             result["session_id"] = session_id
+#             auth_token = (
+#                 result.get("auth_token") or
+#                 (result.get("data", {}).get("auth_token") if isinstance(result.get("data"), dict) else None)
+#             )
+#             if auth_token:
+#                 result["auth_token"] = auth_token
+#         return result
 async def sign_in(phone: str, password: str, session_id: str) -> dict:
     data = {"user_name": phone, "password": password, "is_otp": "0"}
     async with httpx.AsyncClient() as client:
         response = await client.post(VERIFY_OTP_URL, data=data, headers=AUTH_HEADERS)
         result = response.json()
         if result.get("error") == "0":
-            result["session_id"] = session_id
+            first_name = result.get('data', {}).get('first_name', '')
+            last_name = result.get('data', {}).get('last_name', '')
             auth_token = (
                 result.get("auth_token") or
-                (result.get("data", {}).get("auth_token") if isinstance(result.get("data"), dict) else None)
+                result.get('data', {}).get("auth_token")
             )
-            if auth_token:
-                result["auth_token"] = auth_token
-        return result
-
+            answer = f"Login successful. Welcome, {first_name}!"
+            status = "success"
+        else:
+            first_name = None
+            auth_token = None
+            answer = result.get("message", "Login failed.")
+            status = "error"
+        return {
+            "status": status,
+            "data": {
+                "answer": answer,
+                "name": f"{first_name} {last_name}",
+                "auth_token": auth_token
+            }
+        }
 sign_in_schema = {
     "name": "sign_in",
     "description": "Sign in the user with phone and password (not OTP).",

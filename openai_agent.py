@@ -11,6 +11,7 @@ from tools.tool_registry import tool_registry  # your { name: (func, schema) }
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def extract_json_from_response(text: str):
+    print(f"RESPONE FRO THE  EXTRACTION {text}")
     text = text.strip()
     if text.startswith("```json"): text = text[7:]
     if text.startswith("```"):     text = text[3:]
@@ -77,13 +78,24 @@ LOTUS_SYSTEM_PROMPT = (
     "If the user asks about their cart, use the get_cart tool.\n"
     "Respond ONLY in valid JSON with top‑level `status` and `data.answer`.\n"
     "If you have to show the order details, the Response ONLY in valid JSON like this:\n"
-    "{\n"
-    "  \"status\": \"success\",\n"
-    "  \"data\": {\n"
-    "    \"answer\": \"...\",\n"
-    "    \"orders\": [ { \"order_id\": ..., \"product_name\": ..., \"product_image\": ..., \"status\": ... } ],\n"
-    "  }\n"
+    "{\n"  
+    "  \"status\": \"success\",\n"  
+    "  \"data\": {\n"  
+    "    \"answer\": \"...\",\n"  
+    "    \"orders\": [\n"  
+    "      {\n"  
+    "        \"itemname\": \"...\",\n"  
+    "        \"order_id\": \"...\",\n"  
+    "        \"order_date\": \"...\",\n"  
+    "        \"product_image\": \"...\",\n"  
+    "        \"invoice_no\": \"...\",\n"  
+    "        \"invoice_url\": \"...\",\n"  
+    "        \"status\": \"...\"\n"  
+    "      }\n"  
+    "    ]\n"  
+    "  }\n"  
     "}"
+
 )
 
 
