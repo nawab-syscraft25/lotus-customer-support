@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware, secret_key="your_secret_key_here")  # Add this for session support
+app.add_middleware(SessionMiddleware, secret_key="nawabkhan1234")  # Add this for session support
 
 class ChatRequest(BaseModel):
     message: str
@@ -158,12 +158,10 @@ async def auth_status_endpoint(session_id: str):
 async def read_root(request: Request):
     return templates.TemplateResponse("chatbot.html", {"request": request})
 
-# === Run Server ===
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
 
-ADMIN_USER = 'admin'
-ADMIN_PASS = 'password123'
+
+ADMIN_USER = os.getenv("UserName")
+ADMIN_PASS = os.getenv("Password")
 DB_FILE = 'tickets.db'
 
 @app.get("/admin")
@@ -188,3 +186,7 @@ async def admin_tickets(request: Request):
     tickets = c.fetchall()
     conn.close()
     return templates.TemplateResponse("admin_tickets.html", {"request": request, "tickets": tickets}) 
+
+# === Run Server ===
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
