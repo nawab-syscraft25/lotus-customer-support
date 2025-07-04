@@ -4,6 +4,7 @@ from .order import get_orders, get_orders_schema
 from .offers import get_current_offers, get_current_offers_schema
 from .check_delivery import check_product_delivery, check_product_delivery_schema
 from .near_stores import check_near_stores, check_near_stores_schema
+from .raise_ticket import raise_ticket, raise_ticket_schema
 
 
 tool_registry = {
@@ -14,6 +15,7 @@ tool_registry = {
     "sign_in":(sign_in,sign_in_schema),
     "check_product_delivery": (check_product_delivery, check_product_delivery_schema),
     "check_near_stores": (check_near_stores, check_near_stores_schema),
+    "raise_ticket": (raise_ticket, raise_ticket_schema),
 }
 
 def is_authenticated(memory: dict) -> bool:

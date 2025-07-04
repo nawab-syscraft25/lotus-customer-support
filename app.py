@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, Form
 from pydantic import BaseModel
 from tools import tool_registry
 from memory.memory_store import get_session_memory, authenticate_user, add_chat_message, is_authenticated
@@ -6,13 +6,15 @@ from openai_agent import chat_with_agent
 import uvicorn
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from tools.auth import check_user, send_otp, verify_otp, sign_in
+import sqlite3
+from starlette.middleware.sessions import SessionMiddleware
 
 
 app = FastAPI(title="Lotus Shopping Assistant")
@@ -29,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key="your_secret_key_here")  # Add this for session support
 
 class ChatRequest(BaseModel):
     message: str
@@ -157,3 +161,30 @@ async def read_root(request: Request):
 # === Run Server ===
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
+
+ADMIN_USER = 'admin'
+ADMIN_PASS = 'password123'
+DB_FILE = 'tickets.db'
+
+@app.get("/admin")
+async def admin_login_get(request: Request):
+    return templates.TemplateResponse("admin_login.html", {"request": request, "error": None})
+
+@app.post("/admin")
+async def admin_login_post(request: Request, user: str = Form(...), password: str = Form(...)):
+    if user == ADMIN_USER and password == ADMIN_PASS:
+        request.session["admin_logged_in"] = True
+        return RedirectResponse(url="/admin/tickets", status_code=303)
+    else:
+        return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Invalid credentials"})
+
+@app.get("/admin/tickets")
+async def admin_tickets(request: Request):
+    if not request.session.get("admin_logged_in"):
+        return RedirectResponse(url="/admin", status_code=303)
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('SELECT id, timestamp, phone, name, problem, order_id, invoice_no FROM tickets ORDER BY id DESC')
+    tickets = c.fetchall()
+    conn.close()
+    return templates.TemplateResponse("admin_tickets.html", {"request": request, "tickets": tickets}) 
