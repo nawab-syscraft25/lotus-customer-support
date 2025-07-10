@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Depends, Form
 from pydantic import BaseModel
 from tools import tool_registry
 from memory.memory_store import get_session_memory, authenticate_user, add_chat_message, is_authenticated
-from openai_agent import chat_with_agent
+
 import uvicorn
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
@@ -15,6 +15,15 @@ import os
 from tools.auth import check_user, send_otp, verify_otp, sign_in
 import sqlite3
 from starlette.middleware.sessions import SessionMiddleware
+# from setup_db import init_db 
+import sqlite3
+
+
+# from openai_agent import chat_with_agent
+
+
+from agentic_ai import chat_with_agent, get_chat_history, get_context_from_history, get_db
+
 
 
 app = FastAPI(title="Lotus Shopping Assistant")
@@ -32,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware, secret_key="nawabkhan1234")  # Add this for session support
+app.add_middleware(SessionMiddleware, secret_key="your_secret_key_here")  # Add this for session support
 
 class ChatRequest(BaseModel):
     message: str
@@ -158,10 +167,13 @@ async def auth_status_endpoint(session_id: str):
 async def read_root(request: Request):
     return templates.TemplateResponse("chatbot.html", {"request": request})
 
+# === Run Server ===
 
 
-ADMIN_USER = os.getenv("UserName")
-ADMIN_PASS = os.getenv("Password")
+
+
+ADMIN_USER = os.getenv("ADMIN_USER")
+ADMIN_PASS = os.getenv("ADMIN_PASS")
 DB_FILE = 'tickets.db'
 
 @app.get("/admin")
@@ -187,6 +199,67 @@ async def admin_tickets(request: Request):
     conn.close()
     return templates.TemplateResponse("admin_tickets.html", {"request": request, "tickets": tickets}) 
 
-# === Run Server ===
+
+@app.get("/admin/conversations")
+async def admin_conversations(request: Request):
+    if not request.session.get("admin_logged_in"):
+        return RedirectResponse(url="/admin", status_code=303)
+    
+    conn = sqlite3.connect("chat_history.db")  # or your actual DB file
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # Fetch distinct sessions with latest timestamp
+    c.execute("""
+        SELECT session_id, MAX(timestamp) as last_seen
+        FROM history
+        GROUP BY session_id
+        ORDER BY last_seen DESC
+    """)
+    sessions = c.fetchall()
+
+    conn.close()
+    return templates.TemplateResponse("admin_conversations.html", {"request": request, "sessions": sessions})
+
+
+@app.get("/admin/conversations/{session_id}")
+async def view_conversation(request: Request, session_id: str):
+    if not request.session.get("admin_logged_in"):
+        return RedirectResponse(url="/admin", status_code=303)
+
+    conn = sqlite3.connect("chat_history.db")
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("""
+        SELECT role, content, timestamp FROM history
+        WHERE session_id = ?
+        ORDER BY timestamp ASC
+    """, (session_id,))
+    messages = c.fetchall()
+    conn.close()
+
+    return templates.TemplateResponse("admin_view_conversation.html", {
+        "request": request,
+        "session_id": session_id,
+        "messages": messages
+    })
+
+
+
+
+import os
+
+DB_PATH = "chat_history.db"
+print(f"[DEBUG] Using DB at: {os.path.abspath(DB_PATH)}")  # <--- add this
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
