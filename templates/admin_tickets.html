@@ -3,55 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>All Raised Tickets</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f8f8; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 2px 8px #0001; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        th, td { border: 1px solid #ddd; padding: 0.6em; text-align: left; }
+        th { background: #007bff; color: #fff; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        h2 { margin-bottom: 0.5em; }
+        .logout { float: right; }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">All Raised Tickets</h2>
-            <div>
-                <a href="/admin/conversations" class="btn btn-success me-2">View All Conversations</a>
-                <a href="/admin" class="btn btn-danger">Logout</a>
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover table-striped">
-                <thead class="table-primary">
-                    <tr>
-                        <th>ID</th>
-                        <th>Timestamp</th>
-                        <th>Phone</th>
-                        <th>Name</th>
-                        <th>Problem</th>
-                        <th>Order ID</th>
-                        <th>Invoice No</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in tickets %}
-                    <tr>
-                        <td>{{ t[0] }}</td>
-                        <td>{{ t[1] }}</td>
-                        <td>{{ t[2] }}</td>
-                        <td>{{ t[3] }}</td>
-                        <td>{{ t[4] }}</td>
-                        <td>{{ t[5] or '' }}</td>
-                        <td>{{ t[6] or '' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center">No tickets found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<body>
+    <div class="container">
+        <h2>All Raised Tickets <a href="/admin" class="logout">Logout</a></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Timestamp</th>
+                    <th>Phone</th>
+                    <th>Name</th>
+                    <th>Problem</th>
+                    <th>Order ID</th>
+                    <th>Invoice No</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td>{{ t[0] }}</td>
+                    <td>{{ t[1] }}</td>
+                    <td>{{ t[2] }}</td>
+                    <td>{{ t[3] }}</td>
+                    <td>{{ t[4] }}</td>
+                    <td>{{ t[5] or '' }}</td>
+                    <td>{{ t[6] or '' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No tickets found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-
-    <!-- Bootstrap JS Bundle CDN (includes Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html> 

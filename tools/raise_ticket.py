@@ -1,14 +1,7 @@
 import sqlite3
 from datetime import datetime
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 DB_FILE = 'tickets.db'
-
-
-def get_india_time():
-    return datetime.now(ZoneInfo("Asia/Kolkata")).isoformat()
-
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -47,7 +40,7 @@ def save_ticket_sqlite(ticket: dict):
 
 async def raise_ticket(phone: str, name: str, problem: str, order_id: str = None, invoice_no: str = None) -> dict:
     ticket = {
-        'timestamp': get_india_time(),
+        'timestamp': datetime.utcnow().isoformat(),
         'phone': phone,
         'name': name,
         'problem': problem,
