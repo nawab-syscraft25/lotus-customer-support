@@ -61,22 +61,6 @@ class SignInRequest(BaseModel):
     password: str
     session_id: str
 
-# @app.post("/chat")
-# async def chat_endpoint(request: ChatRequest):
-#     # Retrieve session memory
-#     memory = get_session_memory(request.session_id)
-    
-#     # Add user message to history
-#     add_chat_message(request.session_id, "user", request.message)
-    
-#     # Call LLM agent with message, memory, and tool registry
-#     response = chat_with_agent(request.message, request.session_id, memory)
-    
-#     # Add bot response to history
-#     if response and "data" in response and "answer" in response["data"]:
-#         add_chat_message(request.session_id, "assistant", response["data"]["answer"])
-    
-#     return {"response": response}
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
