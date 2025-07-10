@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Depends, Form
 from pydantic import BaseModel
 from tools import tool_registry
 from memory.memory_store import get_session_memory, authenticate_user, add_chat_message, is_authenticated
-
+from fastapi.responses import RedirectResponse
 import uvicorn
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
@@ -229,7 +229,10 @@ async def view_conversation(request: Request, session_id: str):
     })
 
 
-
+@app.get("/admin/logout")
+async def admin_logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/admin", status_code=303)
 
 import os
 
