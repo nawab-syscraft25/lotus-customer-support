@@ -693,3 +693,17 @@ body {
     box-shadow: var(--shadow-lg);
 }
  
+
+
+.chat-banner-container {
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.chat-banner-img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    object-fit: cover;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
