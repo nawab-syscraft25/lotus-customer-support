@@ -9,7 +9,7 @@ from .raise_ticket import raise_ticket, raise_ticket_schema
 
 tool_registry = {
     "check_user": (check_user, check_user_schema),
-    # "send_otp": (send_otp, send_otp_schema),
+    "send_otp": (send_otp, send_otp_schema),
     # "verify_otp": (verify_otp, verify_otp_schema),
     "get_orders": (get_orders, get_orders_schema),
     "sign_in":(sign_in,sign_in_schema),

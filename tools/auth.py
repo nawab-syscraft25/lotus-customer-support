@@ -4,7 +4,7 @@ AUTH_HEADERS = {
     "auth-key": "Web2@!9",
     "end-client": "Lotus-Web"
 }
-
+import os 
 # Remote API endpoints
 CHECK_USER_URL = "https://portal.lotuselectronics.com/web-api/user/check_user"
 SEND_OTP_URL = "https://portal.lotuselectronics.com/web-api/user/send_otp"
@@ -36,13 +36,22 @@ logger = logging.getLogger(__name__)
 #         response = await client.post(SEND_OTP_URL, data=data, headers=AUTH_HEADERS)
 #         return response.json()
 
+AUTH_HEADERS_otp = {
+    "auth-key": "Web2@!9",
+    "end-client": "Lotus-Web",
+    "x-chatbot-auth": "3c4f72f2-923e-4efb-a1a2-2c5823d843ba" # secure token
+}
+
 async def send_otp(phone: str) -> dict:
-    data = {"user_name": phone}
+    data = {
+            "user_name": phone,
+            "recaptcha_token": "chatbot-bypass-token"
+        }
 
     try:
         timeout = httpx.Timeout(connect=5.0, read=10.0, write=10.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(SEND_OTP_URL, data=data, headers=AUTH_HEADERS)
+            response = await client.post(SEND_OTP_URL, data=data, headers=AUTH_HEADERS_otp)
             response.raise_for_status()
             return response.json()
 
@@ -72,8 +81,18 @@ async def send_otp(phone: str) -> dict:
                 "answer": "An unexpected error occurred while sending the OTP."
             }
         }
+import asyncio
 
+async def main():
+    phone_number = "8962507486"  # Replace with a valid number for testing
+    result = await send_otp(phone_number)
+    print(result)
 
+# Uncomment the following line to test send_otp
+# asyncio.run(test_send_otp())
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 send_otp_schema = {
     "name": "send_otp",
@@ -103,6 +122,8 @@ async def verify_otp(phone: str, otp: str, session_id: str) -> dict:
                 result["auth_token"] = auth_token
         return result
 
+
+
 verify_otp_schema = {
     "name": "verify_otp",
     "description": "Verify the OTP for the user's phone number and session.",
@@ -131,10 +152,21 @@ verify_otp_schema = {
 #             if auth_token:
 #                 result["auth_token"] = auth_token
 #         return result
+AUTH_HEADERS_sign = {
+    "auth-key": "Web2@!9",
+    "end-client": "Lotus-Web",
+    "x-chatbot-auth": "3c4f72f2-923e-4efb-a1a2-2c5823d843ba" # secure token
+}
+
 async def sign_in(phone: str, password: str, session_id: str) -> dict:
-    data = {"user_name": phone, "password": password, "is_otp": "0"}
+    data = {
+        "user_name": phone,
+        "password": password,
+        "is_otp": "1",
+        "recaptcha_token": "chatbot-bypass-token"
+    }
     async with httpx.AsyncClient() as client:
-        response = await client.post(VERIFY_OTP_URL, data=data, headers=AUTH_HEADERS)
+        response = await client.post(VERIFY_OTP_URL, data=data, headers=AUTH_HEADERS_sign)
         result = response.json()
         if result.get("error") == "0":
             first_name = result.get('data', {}).get('first_name', '')
@@ -158,6 +190,47 @@ async def sign_in(phone: str, password: str, session_id: str) -> dict:
                 "auth_token": auth_token
             }
         }
+def sign_in_test(phone: str, password: str, session_id: str) -> dict:
+    data = {
+        "user_name": phone,
+        "password": password,
+        "is_otp": "0",
+        "recaptcha_token": "chatbot-bypass-token"
+    }
+
+    response = httpx.post(VERIFY_OTP_URL, data=data, headers=AUTH_HEADERS_sign)
+    result = response.json()
+
+    if result.get("error") == "0":
+        first_name = result.get('data', {}).get('first_name', '')
+        last_name = result.get('data', {}).get('last_name', '')
+        auth_token = (
+            result.get("auth_token") or
+            result.get('data', {}).get("auth_token")
+        )
+        answer = f"Login successful. Welcome, {first_name}!"
+        status = "success"
+    else:
+        first_name = None
+        last_name = ""
+        auth_token = None
+        answer = result.get("message", "Login failed.")
+        status = "error"
+
+    return {
+        "status": status,
+        "data": {
+            "answer": answer,
+            "name": f"{first_name or ''} {last_name}".strip(),
+            "auth_token": auth_token
+        }
+    }
+
+
+# sign_in_test(phone="8962507486", password="password", session_id="test_session1")
+
+# print("Sign in test result:", sign_in_test(phone="1234567890", password="12345678", session_id="test_session1"))
+
 sign_in_schema = {
     "name": "sign_in",
     "description": "Sign in the user with phone and password (not OTP).",
