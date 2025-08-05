@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Chatbot - Speech Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+        }
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #b8daff;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px;
+            background: #20b2aa;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: #1a9b94;
+            transform: translateY(-2px);
+        }
+        .protocol-info {
+            font-weight: bold;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .https { color: #28a745; }
+        .http { color: #dc3545; }
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            color: #20b2aa;
+            margin-top: 0;
+        }
+        .instructions ol {
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .status-indicator {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Lotus Chatbot Speech Functionality Test</h1>
+        
+        <div class="protocol-info">
+            Current Protocol: <span id="currentProtocol"></span>
+        </div>
+        
+        <div id="protocolAlert"></div>
+        
+        <div class="instructions">
+            <h3>🔧 How to Enable Speech Features</h3>
+            <ol>
+                <li><strong>Use HTTPS:</strong> Speech recognition requires a secure connection (HTTPS) for security reasons.</li>
+                <li><strong>Allow Microphone Access:</strong> When prompted, click "Allow" to grant microphone permissions.</li>
+                <li><strong>Browser Compatibility:</strong> Works best in Chrome, Edge, and Safari. Firefox has limited support.</li>
+                <li><strong>For Local Testing:</strong> Use localhost or 127.0.0.1 instead of your local IP address.</li>
+            </ol>
+        </div>
+
+        <div id="speechStatus"></div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="/" class="btn">🏠 Go to Chatbot (HTTP)</a>
+            <a href="javascript:void(0)" onclick="switchToHTTPS()" class="btn">🔒 Switch to HTTPS</a>
+        </div>
+
+        <div class="instructions">
+            <h3>🎯 Quick Setup for Local Development</h3>
+            <p><strong>Option 1: Use a reverse proxy with HTTPS</strong></p>
+            <p>Install and use a tool like <code>ngrok</code> to create an HTTPS tunnel:</p>
+            <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto;">
+# Install ngrok (if not already installed)
+# Then run:
+ngrok http 8000
+
+# This will give you an HTTPS URL like: https://abc123.ngrok.io
+            </pre>
+            
+            <p><strong>Option 2: Access via localhost</strong></p>
+            <p>Instead of using your IP address, access the chatbot via:</p>
+            <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px;">
+http://localhost:8000/
+# or
+http://127.0.0.1:8000/
+            </pre>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>💡 Pro Tip:</strong> Once you have HTTPS working, the chatbot will automatically detect and enable speech features!
+        </div>
+    </div>
+
+    <script>
+        function updateProtocolStatus() {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const protocolElement = document.getElementById('currentProtocol');
+            const alertElement = document.getElementById('protocolAlert');
+            const statusElement = document.getElementById('speechStatus');
+            
+            if (protocol === 'https:') {
+                protocolElement.innerHTML = '<span class="https">HTTPS ✅</span>';
+                alertElement.innerHTML = '<div class="alert alert-success">✅ HTTPS detected! Speech features should work properly.</div>';
+                checkSpeechSupport();
+            } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                protocolElement.innerHTML = '<span class="http">HTTP (localhost) ⚠️</span>';
+                alertElement.innerHTML = '<div class="alert alert-warning">⚠️ Using HTTP on localhost. Speech features may work but HTTPS is recommended.</div>';
+                checkSpeechSupport();
+            } else {
+                protocolElement.innerHTML = '<span class="http">HTTP ❌</span>';
+                alertElement.innerHTML = '<div class="alert alert-warning">❌ HTTP detected on remote host. Speech features will not work. Please switch to HTTPS.</div>';
+                statusElement.innerHTML = '<div class="status-indicator" style="background: #f8d7da; color: #721c24;">🚫 Speech features disabled due to HTTP</div>';
+            }
+        }
+
+        function checkSpeechSupport() {
+            const statusElement = document.getElementById('speechStatus');
+            const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            const hasSpeechSynthesis = 'speechSynthesis' in window;
+            
+            let status = '<h3>Speech Support Status:</h3>';
+            
+            if (hasSpeechRecognition) {
+                status += '<div class="status-indicator" style="background: #d4edda; color: #155724;">✅ Speech Recognition: Supported</div>';
+            } else {
+                status += '<div class="status-indicator" style="background: #f8d7da; color: #721c24;">❌ Speech Recognition: Not Supported</div>';
+            }
+            
+            if (hasSpeechSynthesis) {
+                status += '<div class="status-indicator" style="background: #d4edda; color: #155724;">✅ Speech Synthesis: Supported</div>';
+            } else {
+                status += '<div class="status-indicator" style="background: #f8d7da; color: #721c24;">❌ Speech Synthesis: Not Supported</div>';
+            }
+            
+            statusElement.innerHTML = status;
+        }
+
+        function switchToHTTPS() {
+            const httpsUrl = window.location.href.replace('http:', 'https:');
+            window.location.href = httpsUrl;
+        }
+
+        // Check protocol status on page load
+        updateProtocolStatus();
+    </script>
+</body>
+</html>

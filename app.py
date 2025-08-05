@@ -151,6 +151,10 @@ async def auth_status_endpoint(session_id: str):
 async def read_root(request: Request):
     return templates.TemplateResponse("chatbot.html", {"request": request})
 
+@app.get("/speech-test")
+async def speech_test(request: Request):
+    return templates.TemplateResponse("speech_test.html", {"request": request})
+
 # === Run Server ===
 
 
