@@ -74,7 +74,14 @@ class ChatBot {
                         errorMessage = 'Network error. Please check your connection.';
                         break;
                     case 'not-allowed':
-                        errorMessage = 'Microphone access denied. Please allow microphone access.';
+                        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                            errorMessage = 'Microphone access requires HTTPS. Please use a secure connection.';
+                        } else {
+                            errorMessage = 'Microphone access denied. Please click the microphone icon in your browser\'s address bar and allow microphone access.';
+                        }
+                        break;
+                    case 'service-not-allowed':
+                        errorMessage = 'Speech service not allowed. Please enable microphone permissions for this site.';
                         break;
                 }
                 this.showSpeechStatus(errorMessage, true);
@@ -116,6 +123,36 @@ class ChatBot {
         // Speech elements
         this.speechBtn = document.getElementById('speechBtn');
         this.speechToggleBtn = document.getElementById('speechToggleBtn');
+        this.speechNotice = document.querySelector('.speech-notice');
+        this.speechNoticeText = document.getElementById('speechNoticeText');
+        
+        // Check and show speech requirements
+        this.checkSpeechRequirements();
+    }
+
+    checkSpeechRequirements() {
+        if (!this.speechNotice || !this.speechNoticeText) return;
+        
+        const isHTTPS = location.protocol === 'https:';
+        const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+        
+        if (!hasSpeechRecognition) {
+            this.speechNoticeText.textContent = 'Speech recognition not supported in this browser';
+            this.speechNotice.style.display = 'block';
+        } else if (!isHTTPS && !isLocalhost) {
+            this.speechNoticeText.innerHTML = 'Speech features require HTTPS. <a href="' + location.href.replace('http:', 'https:') + '" style="color: var(--primary-color);">Switch to HTTPS</a>';
+            this.speechNotice.style.display = 'block';
+        } else {
+            this.speechNoticeText.textContent = 'Click the microphone to speak your message';
+            // Show notice initially, hide after user interaction
+            this.speechNotice.style.display = 'block';
+            setTimeout(() => {
+                if (this.speechNotice) {
+                    this.speechNotice.style.display = 'none';
+                }
+            }, 5000);
+        }
     }
 
     bindEvents() {
@@ -349,7 +386,7 @@ class ChatBot {
 
     
     // Speech Recognition Methods
-    toggleSpeechRecognition() {
+    async toggleSpeechRecognition() {
         if (!this.speechRecognition) {
             this.showSpeechStatus('Speech recognition not supported in this browser', true);
             return;
@@ -357,10 +394,36 @@ class ChatBot {
 
         if (this.isListening) {
             this.speechRecognition.stop();
-        } else {
-            // Stop any current speech synthesis
-            this.stopSpeech();
+            return;
+        }
+
+        // Check if we're on HTTPS or localhost
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            this.showSpeechStatus('Microphone access requires HTTPS. Please use https:// instead of http://', true);
+            return;
+        }
+
+        // Check microphone permissions if available
+        if ('permissions' in navigator) {
+            try {
+                const permission = await navigator.permissions.query({ name: 'microphone' });
+                if (permission.state === 'denied') {
+                    this.showSpeechStatus('Microphone access denied. Please click the microphone icon in your browser\'s address bar to allow access.', true);
+                    return;
+                }
+            } catch (error) {
+                console.log('Permission query not supported, continuing with speech recognition');
+            }
+        }
+
+        // Stop any current speech synthesis
+        this.stopSpeech();
+        
+        try {
             this.speechRecognition.start();
+        } catch (error) {
+            console.error('Speech recognition start error:', error);
+            this.showSpeechStatus('Could not start speech recognition. Please try again.', true);
         }
     }
 
