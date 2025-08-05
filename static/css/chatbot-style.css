@@ -97,7 +97,7 @@
         bottom: 30px;
         right: 105px;
         width: 450px;
-        height: 600px;
+        height: 650px;
         /* top:10px;
         bottom: 10px; */
         background: white;
@@ -684,4 +684,76 @@
 .carousel-inner img {
     max-height: 150px;
     object-fit: cover;
+}
+
+/* Speech Button Styles */
+.speech-btn {
+    border-right: none !important;
+    position: relative;
+}
+
+.speech-btn.listening {
+    background: #dc3545 !important;
+    color: white !important;
+    animation: pulse 1.5s infinite;
+}
+
+.speech-btn.listening i {
+    animation: microphone-pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+@keyframes microphone-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.speech-toggle-btn {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.speech-toggle-btn.muted {
+    background: #6c757d !important;
+    color: white !important;
+}
+
+.speech-toggle-btn.muted i::before {
+    content: "\f6a9"; /* fa-volume-mute */
+}
+
+/* Speech Recognition Status */
+.speech-status {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+.speech-status.show {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }

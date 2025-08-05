@@ -11,6 +11,14 @@ class ChatBot {
         this.lastUserMessage = '';
         this.phoneNumber = '';
 
+        // Speech functionality
+        this.speechRecognition = null;
+        this.speechSynthesis = window.speechSynthesis;
+        this.isListening = false;
+        this.speechEnabled = true;
+        this.currentUtterance = null;
+
+        this.initializeSpeech();
         this.initializeElements();
         this.bindEvents();
         this.showWelcomeMessage();
@@ -22,6 +30,74 @@ class ChatBot {
             const v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
+    }
+
+    initializeSpeech() {
+        // Check if Speech Recognition is supported
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.speechRecognition = new SpeechRecognition();
+            
+            this.speechRecognition.continuous = false;
+            this.speechRecognition.interimResults = false;
+            this.speechRecognition.lang = 'en-US';
+            
+            this.speechRecognition.onstart = () => {
+                this.isListening = true;
+                this.updateSpeechButton();
+                this.showSpeechStatus('Listening...');
+            };
+            
+            this.speechRecognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                this.messageInput.value = transcript;
+                this.hideSpeechStatus();
+                
+                // Auto-send the message after speech recognition
+                setTimeout(() => {
+                    this.sendMessage();
+                }, 500);
+            };
+            
+            this.speechRecognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                this.isListening = false;
+                this.updateSpeechButton();
+                this.hideSpeechStatus();
+                
+                let errorMessage = 'Speech recognition error';
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage = 'No speech detected. Please try again.';
+                        break;
+                    case 'network':
+                        errorMessage = 'Network error. Please check your connection.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = 'Microphone access denied. Please allow microphone access.';
+                        break;
+                }
+                this.showSpeechStatus(errorMessage, true);
+            };
+            
+            this.speechRecognition.onend = () => {
+                this.isListening = false;
+                this.updateSpeechButton();
+                this.hideSpeechStatus();
+            };
+        } else {
+            console.warn('Speech Recognition not supported in this browser');
+        }
+
+        // Ensure voices are loaded for speech synthesis
+        if (this.speechSynthesis) {
+            // Load voices
+            if (this.speechSynthesis.getVoices().length === 0) {
+                this.speechSynthesis.addEventListener('voiceschanged', () => {
+                    console.log('Voices loaded:', this.speechSynthesis.getVoices().length);
+                });
+            }
+        }
     }
 
     initializeElements() {
@@ -36,6 +112,10 @@ class ChatBot {
         this.notificationBadge = document.getElementById('notificationBadge');
         this.quickActionBtns = document.querySelectorAll('.quick-action-btn');
         this.quickActionsContainer = document.getElementById('quickActions');
+        
+        // Speech elements
+        this.speechBtn = document.getElementById('speechBtn');
+        this.speechToggleBtn = document.getElementById('speechToggleBtn');
     }
 
     bindEvents() {
@@ -57,6 +137,14 @@ class ChatBot {
         );
         this.messageInput.addEventListener('input', () => this.autoResizeInput());
         this.chatContainer.addEventListener('click', e => e.stopPropagation());
+
+        // Speech event listeners
+        if (this.speechBtn) {
+            this.speechBtn.addEventListener('click', () => this.toggleSpeechRecognition());
+        }
+        if (this.speechToggleBtn) {
+            this.speechToggleBtn.addEventListener('click', () => this.toggleSpeechSynthesis());
+        }
     }
 
     toggleChat() {
@@ -79,6 +167,12 @@ class ChatBot {
         this.chatOverlay.classList.remove('active');
         this.chatToggle.classList.remove('active');
         document.body.style.overflow = '';
+        
+        // Stop speech when closing chat
+        this.stopSpeech();
+        if (this.isListening && this.speechRecognition) {
+            this.speechRecognition.stop();
+        }
     }
 
     // NEW: hide quick-action buttons container
@@ -253,6 +347,155 @@ class ChatBot {
     
     
 
+    
+    // Speech Recognition Methods
+    toggleSpeechRecognition() {
+        if (!this.speechRecognition) {
+            this.showSpeechStatus('Speech recognition not supported in this browser', true);
+            return;
+        }
+
+        if (this.isListening) {
+            this.speechRecognition.stop();
+        } else {
+            // Stop any current speech synthesis
+            this.stopSpeech();
+            this.speechRecognition.start();
+        }
+    }
+
+    updateSpeechButton() {
+        if (!this.speechBtn) return;
+        
+        if (this.isListening) {
+            this.speechBtn.classList.add('listening');
+            this.speechBtn.title = 'Stop listening';
+        } else {
+            this.speechBtn.classList.remove('listening');
+            this.speechBtn.title = 'Click to speak';
+        }
+    }
+
+    showSpeechStatus(message, isError = false) {
+        // Remove existing status
+        this.hideSpeechStatus();
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `speech-status show ${isError ? 'error' : ''}`;
+        statusDiv.textContent = message;
+        statusDiv.id = 'speechStatus';
+        
+        this.speechBtn.style.position = 'relative';
+        this.speechBtn.appendChild(statusDiv);
+        
+        if (isError) {
+            statusDiv.style.background = 'rgba(220, 53, 69, 0.9)';
+            setTimeout(() => this.hideSpeechStatus(), 3000);
+        }
+    }
+
+    hideSpeechStatus() {
+        const existingStatus = document.getElementById('speechStatus');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+    }
+
+    // Speech Synthesis Methods
+    toggleSpeechSynthesis() {
+        this.speechEnabled = !this.speechEnabled;
+        this.updateSpeechToggleButton();
+        
+        if (!this.speechEnabled) {
+            this.stopSpeech();
+        }
+    }
+
+    updateSpeechToggleButton() {
+        if (!this.speechToggleBtn) return;
+        
+        if (this.speechEnabled) {
+            this.speechToggleBtn.classList.remove('muted');
+            this.speechToggleBtn.title = 'Bot speech enabled (click to mute)';
+            this.speechToggleBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        } else {
+            this.speechToggleBtn.classList.add('muted');
+            this.speechToggleBtn.title = 'Bot speech muted (click to enable)';
+            this.speechToggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+        }
+    }
+
+    speak(text) {
+        if (!this.speechEnabled || !this.speechSynthesis) return;
+        
+        // Stop any current speech
+        this.stopSpeech();
+        
+        // Clean the text for better speech synthesis
+        const cleanText = this.cleanTextForSpeech(text);
+        
+        if (cleanText.trim()) {
+            this.currentUtterance = new SpeechSynthesisUtterance(cleanText);
+            this.currentUtterance.rate = 0.9;
+            this.currentUtterance.pitch = 1.0;
+            this.currentUtterance.volume = 0.8;
+            
+            // Try to use a more natural voice if available
+            const voices = this.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(voice => 
+                voice.lang.startsWith('en') && 
+                (voice.name.includes('Natural') || voice.name.includes('Enhanced') || voice.name.includes('Premium'))
+            ) || voices.find(voice => voice.lang.startsWith('en'));
+            
+            if (preferredVoice) {
+                this.currentUtterance.voice = preferredVoice;
+            }
+            
+            this.currentUtterance.onstart = () => {
+                console.log('Speech synthesis started');
+            };
+            
+            this.currentUtterance.onend = () => {
+                console.log('Speech synthesis ended');
+                this.currentUtterance = null;
+            };
+            
+            this.currentUtterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event.error);
+                this.currentUtterance = null;
+            };
+            
+            this.speechSynthesis.speak(this.currentUtterance);
+        }
+    }
+
+    stopSpeech() {
+        if (this.speechSynthesis && this.speechSynthesis.speaking) {
+            this.speechSynthesis.cancel();
+        }
+        this.currentUtterance = null;
+    }
+
+    cleanTextForSpeech(text) {
+        // Remove HTML tags
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = text;
+        let cleanText = tempDiv.textContent || tempDiv.innerText || '';
+        
+        // Remove markdown-style formatting
+        cleanText = cleanText
+            .replace(/\*\*(.*?)\*\*/g, '$1')  // Bold
+            .replace(/\*(.*?)\*/g, '$1')      // Italic
+            .replace(/`(.*?)`/g, '$1')        // Code
+            .replace(/#{1,6}\s/g, '')         // Headers
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Links
+            .replace(/\n+/g, '. ')            // Line breaks to periods
+            .replace(/\s+/g, ' ')             // Multiple spaces to single
+            .trim();
+        
+        return cleanText;
+    }
+
     generateBotResponse(userMessage) {
         this.showTypingIndicator();
 
@@ -278,7 +521,11 @@ class ChatBot {
 
             if (data.status === "success" && data.data) {
                 const { answer, orders, products, comparison, end } = data.data;
-                if (answer) this.addMessage(answer, 'bot');
+                if (answer) {
+                    this.addMessage(answer, 'bot');
+                    // Speak the bot's response
+                    this.speak(answer);
+                }
                 if (orders && Array.isArray(orders)) orders.forEach(o => this.addOrderCard(o));
                 if (products && Array.isArray(products)) products.forEach(p => this.addProductCard(p));
                 if (comparison && Array.isArray(comparison)) {
@@ -286,17 +533,27 @@ class ChatBot {
                         /* your existing comparison rendering logic */
                     });
                 }
-                if (end) this.addMessage(end, 'bot');
+                if (end) {
+                    this.addMessage(end, 'bot');
+                    // Speak the ending message
+                    this.speak(end);
+                }
             } else if (data.status === "error") {
-                this.addMessage(data.data?.answer || "Sorry, an error occurred.", 'bot');
+                const errorMessage = data.data?.answer || "Sorry, an error occurred.";
+                this.addMessage(errorMessage, 'bot');
+                this.speak(errorMessage);
             } else {
-                this.addMessage(data.data?.answer || "Sorry, I didn't get that.", 'bot');
+                const fallbackMessage = data.data?.answer || "Sorry, I didn't get that.";
+                this.addMessage(fallbackMessage, 'bot');
+                this.speak(fallbackMessage);
             }
         })
         .catch(err => {
             console.error("API error:", err);
             this.hideTypingIndicator();
-            this.addMessage(`Oops, something went wrong: ${err.message}`, 'bot');
+            const errorMessage = `Oops, something went wrong: ${err.message}`;
+            this.addMessage(errorMessage, 'bot');
+            this.speak(errorMessage);
         });
     }
 
@@ -311,6 +568,12 @@ class ChatBot {
         this.typingIndicator.classList.remove('active');
     }
     showWelcomeMessage() {
+        const welcomeMessage = "Hello! I'm your Lotus Customer Support Assistant. How can I help you today?";
+        this.addMessage(welcomeMessage, 'bot');
+        // Speak welcome message after a short delay
+        setTimeout(() => {
+            this.speak(welcomeMessage);
+        }, 1000);
         setTimeout(() => this.showNotificationBadge(), 2000);
     }
     showNotificationBadge() {
